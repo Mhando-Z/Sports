@@ -8,7 +8,7 @@ export function DataProvider({ children }) {
   const [channels, setChannels] = useState();
   const [feeds, setFeeds] = useState();
   const [logos, setLogos] = useState();
-  const [stream, setStream] = useState();
+  const [streams, setStream] = useState();
 
   const fetchStreamsds = async () => {
     try {
@@ -56,7 +56,9 @@ export function DataProvider({ children }) {
   }, []);
 
   return (
-    <DataContext.Provider value={channels}>{children}</DataContext.Provider>
+    <DataContext.Provider value={{ channels, feeds, logos, streams }}>
+      {children}
+    </DataContext.Provider>
   );
 }
 
