@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, createContext } from "react";
+import { useState, useEffect, useMemo, createContext } from "react";
 
 const DataContext = createContext();
 
@@ -10,6 +10,23 @@ export function DataProvider({ children }) {
   const [logos, setLogos] = useState();
   const [streams, setStream] = useState();
   const [categories, setCategories] = useState();
+
+  const mergedChannels = useMemo(() => {
+    if (!channels || !feeds || !logos || !streams) return [];
+
+    const feedMap = new Map(feeds.map((f) => [f.channel, f]));
+    const logoMap = new Map(
+      logos.filter((l) => l.in_use).map((l) => [l.channel, l]),
+    );
+    const streamMap = new Map(streams.map((s) => [s.channel, s]));
+
+    return channels.map((channel) => ({
+      ...channel,
+      feed: feedMap.get(channel.id),
+      logo: logoMap.get(channel.id),
+      stream: streamMap.get(channel.id),
+    }));
+  }, [channels, feeds, logos, streams]);
 
   const fetchCategories = async () => {
     try {
@@ -68,7 +85,14 @@ export function DataProvider({ children }) {
 
   return (
     <DataContext.Provider
-      value={{ channels, feeds, logos, streams, categories }}
+      value={{
+        channels: mergedChannels,
+        rawChannels: channels,
+        feeds,
+        logos,
+        streams,
+        categories,
+      }}
     >
       {children}
     </DataContext.Provider>
