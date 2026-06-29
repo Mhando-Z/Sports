@@ -12,8 +12,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "MhdSports",
-  description: "Your daily sports informer",
+  title: "MhdTv",
+  description:
+    "Stream televison channels for free, all you need is your internet only",
 };
 
 export default function RootLayout({ children }) {
