@@ -18,7 +18,9 @@ export function DataProvider({ children }) {
     fetchChannels();
   }, []);
 
-  return <DataContext.Provider>{children}</DataContext.Provider>;
+  return (
+    <DataContext.Provider value={channels}>{children}</DataContext.Provider>
+  );
 }
 
 export default DataContext;
