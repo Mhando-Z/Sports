@@ -1,11 +1,11 @@
-// const DataContext = useContext()
+import { useState, useEffect, createContext } from "react";
 
-// export function DataProvider({children}){
-//     const [data,setData]=usestate()
+const DataContext = createContext();
 
-//     return(
+export function DataProvider({ children }) {
+  const [data, setData] = usestate();
 
-//     )
-// }
+  return <DataContext.Provider>{children}</DataContext.Provider>;
+}
 
-// export default DataContext
+export default DataContext;
