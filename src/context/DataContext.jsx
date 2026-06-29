@@ -9,7 +9,17 @@ export function DataProvider({ children }) {
   const [feeds, setFeeds] = useState();
   const [logos, setLogos] = useState();
   const [streams, setStream] = useState();
+  const [categories, setCategories] = useState();
 
+  const fetchCategories = async () => {
+    try {
+      fetch("https://iptv-org.github.io/api/categories.json")
+        .then((res) => res.json())
+        .then((data) => {
+          setCategories(data);
+        });
+    } catch {}
+  };
   const fetchStreamsds = async () => {
     try {
       fetch("https://iptv-org.github.io/api/streams.json")
@@ -52,11 +62,14 @@ export function DataProvider({ children }) {
     fetchChannels();
     fetchStreamsds();
     fetchFeeds();
+    fetchCategories();
     fetchLogos();
   }, []);
 
   return (
-    <DataContext.Provider value={{ channels, feeds, logos, streams }}>
+    <DataContext.Provider
+      value={{ channels, feeds, logos, streams, categories }}
+    >
       {children}
     </DataContext.Provider>
   );
