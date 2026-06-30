@@ -217,10 +217,10 @@ export default function ShakaPlayer({ src }) {
         setErrorMsg(humanizeShakaError(event.detail));
       });
 
-      player.addEventListener("buffering", (event) => {
-        if (event.buffering) setStatus("loading");
-        else setStatus((s) => (s === "loading" ? "playing" : s));
-      });
+      // player.addEventListener("buffering", (event) => {
+      //   if (event.buffering) setStatus("loading");
+      //   else setStatus((s) => (s === "loading" ? "playing" : s));
+      // });
 
       try {
         await player.load(src);
@@ -412,7 +412,7 @@ export default function ShakaPlayer({ src }) {
       />
 
       {/* Ambient vignette for legibility under controls */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-black/30" />
 
       {/* ---- Top HUD: live badge + signal/bitrate ---- */}
       {status === "playing" && (
