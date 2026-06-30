@@ -13,7 +13,8 @@
     "idb": "^8.0.3",
     "next": "16.2.9",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "shaka-player": "^5.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

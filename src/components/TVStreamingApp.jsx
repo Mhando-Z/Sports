@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Hls from "hls.js";
 import { useFavorites } from "@/context/FavoritesContext";
 import DataContext from "@/context/DataContext";
+import shaka from "shaka-player";
 
 // ─── Icons (inline SVG to avoid extra deps) ───────────────────────────────────
 
@@ -344,86 +345,88 @@ function ChannelRow({
 }
 
 // ─── HLS Video Player ──────────────────────────────────────────────────────────
-function HlsPlayer({ src }) {
+function ShakaPlayer({ src }) {
   const videoRef = useRef(null);
-  const hlsRef = useRef(null);
-  const [status, setStatus] = useState("loading"); // loading | playing | error
+  const playerRef = useRef(null);
+
+  const [status, setStatus] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !src) return;
+    const initPlayer = async () => {
+      if (!videoRef.current || !src) return;
 
-    setStatus("loading");
-    setErrorMsg("");
+      setStatus("loading");
+      setErrorMsg("");
 
-    let hls;
+      // Install polyfills
+      shaka.polyfill.installAll();
 
-    if (Hls.isSupported()) {
-      hls = new Hls({
-        maxBufferLength: 30,
-        enableWorker: true,
-      });
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
-        setStatus("playing");
-      });
-
-      hls.on(Hls.Events.ERROR, (_evt, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              setErrorMsg("Network error while loading the stream.");
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setErrorMsg(
-                "Playback error — the stream format may be unsupported.",
-              );
-              break;
-            default:
-              setErrorMsg("This stream could not be loaded.");
-          }
-          setStatus("error");
-          hls.destroy();
-        }
-      });
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native HLS support (Safari)
-      video.src = src;
-      video.addEventListener("loadedmetadata", () => {
-        video.play().catch(() => {});
-        setStatus("playing");
-      });
-      video.addEventListener("error", () => {
-        setErrorMsg("This stream could not be loaded.");
+      if (!shaka.Player.isBrowserSupported()) {
         setStatus("error");
+        setErrorMsg("Browser is not supported.");
+        return;
+      }
+
+      const player = new shaka.Player(videoRef.current);
+
+      playerRef.current = player;
+
+      player.configure({
+        streaming: {
+          bufferingGoal: 30,
+          rebufferingGoal: 2,
+          retryParameters: {
+            maxAttempts: 3,
+          },
+        },
       });
-    } else {
-      setErrorMsg("HLS playback is not supported in this browser.");
-      setStatus("error");
-    }
+
+      player.addEventListener("error", (event) => {
+        console.error(event.detail);
+
+        setStatus("error");
+        setErrorMsg(event.detail.message || "Unable to load stream.");
+      });
+
+      try {
+        await player.load(src);
+
+        await videoRef.current.play().catch(() => {});
+
+        setStatus("playing");
+      } catch (err) {
+        console.error(err);
+        setStatus("error");
+        setErrorMsg(err.message || "Unable to load stream.");
+      }
+    };
+
+    initPlayer();
 
     return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
       }
     };
   }, [src]);
 
   return (
     <div className="relative w-full h-full bg-black flex items-center justify-center">
-      <video ref={videoRef} className="w-full h-full" controls playsInline />
+      <video
+        ref={videoRef}
+        className="w-full h-full"
+        controls
+        autoPlay
+        playsInline
+      />
 
       {status === "loading" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black">
           <div className="w-8 h-8 border-2 border-white/15 border-t-[#F5A623] rounded-full animate-spin" />
-          <span className="text-xs text-slate-500 font-mono uppercase tracking-wide">
-            Connecting to feed
+          <span className="text-xs text-slate-500 font-mono uppercase">
+            Connecting...
           </span>
         </div>
       )}
@@ -433,7 +436,9 @@ function HlsPlayer({ src }) {
           <div className="w-12 h-12 rounded-full bg-[#E0421A]/10 text-[#E0421A] flex items-center justify-center">
             <IconAlert />
           </div>
+
           <p className="text-white text-sm font-medium">Stream unavailable</p>
+
           <p className="text-slate-500 text-xs max-w-xs">{errorMsg}</p>
         </div>
       )}
@@ -451,7 +456,7 @@ function PlayerPane({ channel, stream, logo, onClose }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  const isHls = stream?.url && /\.m3u8($|\?)/i.test(stream.url);
+  const playable = stream?.url && /\.(m3u8|mpd)($|\?)/i.test(stream.url);
 
   return (
     <motion.div
@@ -462,7 +467,7 @@ function PlayerPane({ channel, stream, logo, onClose }) {
       className="flex flex-col sticky top-0 bg-[#070A10] lg:border-l border-white/6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/[0.06] shrink-0">
+      <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/6 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onClose}
@@ -494,8 +499,8 @@ function PlayerPane({ channel, stream, logo, onClose }) {
       {/* Player area */}
       <div className="aspect-video lg:aspect-auto lg:flex-1 bg-black relative">
         {stream?.url ? (
-          isHls ? (
-            <HlsPlayer src={stream.url} />
+          playable ? (
+            <ShakaPlayer src={stream.url} />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-8">
               <div className="w-14 h-14 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/25 flex items-center justify-center text-[#F5A623]">
@@ -509,13 +514,13 @@ function PlayerPane({ channel, stream, logo, onClose }) {
                   This source isn't an HLS (.m3u8) feed. Copy the URL into VLC
                   or a compatible player.
                 </p>
-                <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-md px-3 py-2 max-w-md mx-auto">
+                <div className="flex items-center gap-2 bg-white/4 border border-white/8 rounded-md px-3 py-2 max-w-md mx-auto">
                   <code className="text-[11px] text-[#F5A623]/90 truncate flex-1 font-mono">
                     {stream.url}
                   </code>
                   <button
                     onClick={() => navigator.clipboard.writeText(stream.url)}
-                    className="text-[11px] text-slate-400 hover:text-white bg-white/[0.06] px-2 py-1 rounded shrink-0 transition-colors"
+                    className="text-[11px] text-slate-400 hover:text-white bg-white/4 px-2 py-1 rounded shrink-0 transition-colors"
                   >
                     Copy
                   </button>
@@ -546,7 +551,7 @@ function PlayerPane({ channel, stream, logo, onClose }) {
       </div>
 
       {/* Info bar */}
-      <div className="px-4 sm:px-5 py-3 border-t border-white/[0.06] flex items-center gap-4 text-[11px] text-slate-500 flex-wrap shrink-0 font-mono">
+      <div className="px-4 sm:px-5 py-3 border-t border-white/6 flex items-center gap-4 text-[11px] text-slate-500 flex-wrap shrink-0 font-mono">
         {channel.network && (
           <span>
             NETWORK <span className="text-slate-300">{channel.network}</span>
@@ -603,10 +608,10 @@ function Sidebar({
         initial={false}
         animate={{ x: isOpen ? 0 : "-100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed top-0 left-0 h-full w-64 bg-[#0A0D13] border-r border-white/[0.06] z-40 flex flex-col lg:translate-x-0 lg:static lg:z-auto lg:shrink-0"
+        className="fixed top-0 left-0 h-full w-64 bg-[#0A0D13] border-r border-white/6 z-40 flex flex-col lg:translate-x-0 lg:static lg:z-auto lg:shrink-0"
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/[0.06]">
+        <div className="px-5 py-5 border-b border-white/6">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-md bg-[#F5A623] flex items-center justify-center text-[#0B0E14]">
               <IconTV />
@@ -636,8 +641,8 @@ function Sidebar({
               }}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors ${
                 activeCategory === item.id
-                  ? "bg-[#F5A623]/[0.12] text-[#F5A623] border border-[#F5A623]/25"
-                  : "text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
+                  ? "bg-[#F5A623]/12 text-[#F5A623] border border-[#F5A623]/25"
+                  : "text-slate-400 hover:text-white hover:bg-white/4 border border-transparent"
               }`}
             >
               <span className="flex items-center gap-2.5">
@@ -666,7 +671,7 @@ function Sidebar({
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors capitalize ${
                   activeCategory === cat.id
                     ? "bg-[#F5A623]/[0.12] text-[#F5A623] border border-[#F5A623]/25"
-                    : "text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
+                    : "text-slate-400 hover:text-white hover:bg-white/4 border border-transparent"
                 }`}
               >
                 {cat.name}
@@ -675,7 +680,7 @@ function Sidebar({
           </div>
         </nav>
 
-        <div className="px-4 py-3 border-t border-white/[0.06]">
+        <div className="px-4 py-3 border-t border-white/6">
           <p className="text-[10px] text-slate-600 text-center font-mono">
             Powered by iptv-org
           </p>
@@ -812,7 +817,7 @@ export default function TVStreamingApp() {
         }`}
       >
         {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-[#0A0E1A]/95 backdrop-blur border-b border-white/[0.06] px-4 sm:px-6 py-3 shrink-0">
+        <header className="sticky top-0 z-20 bg-[#0A0E1A]/95 backdrop-blur border-b border-white/6 px-4 sm:px-6 py-3 shrink-0">
           <div className="flex items-center gap-3">
             <button
               className="lg:hidden p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5"
@@ -829,7 +834,7 @@ export default function TVStreamingApp() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search channels, networks…"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#F5A623]/50 focus:bg-white/[0.06] transition-colors"
+                className="w-full bg-white/4 border border-white/8 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#F5A623]/50 focus:bg-white/6 transition-colors"
               />
               {search && (
                 <button
@@ -845,7 +850,7 @@ export default function TVStreamingApp() {
               <select
                 value={countryFilter}
                 onChange={(e) => setCountryFilter(e.target.value)}
-                className="hidden sm:block bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-[#F5A623]/50 cursor-pointer"
+                className="hidden sm:block bg-white/4 border border-white/8 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-[#F5A623]/50 cursor-pointer"
               >
                 <option value="">All Countries</option>
                 {countries.map((c) => (
@@ -857,7 +862,7 @@ export default function TVStreamingApp() {
             )}
 
             {!isPlayerOpen && (
-              <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-lg p-1 gap-0.5">
+              <div className="flex items-center bg-white/4 border border-white/8 rounded-lg p-1 gap-0.5">
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`p-1.5 rounded-md transition-colors ${
@@ -885,7 +890,7 @@ export default function TVStreamingApp() {
 
         {/* Stats bar */}
         {!isPlayerOpen && (
-          <div className="px-4 sm:px-6 py-3 border-b border-white/[0.06] flex items-center gap-4 sm:gap-6 overflow-x-auto shrink-0">
+          <div className="px-4 sm:px-6 py-3 border-b border-white/6 flex items-center gap-4 sm:gap-6 overflow-x-auto shrink-0">
             {loading ? (
               <div className="h-4 w-48 bg-white/5 rounded animate-pulse" />
             ) : (
@@ -1032,7 +1037,7 @@ function LoadingSkeleton({ viewMode }) {
       {Array.from({ length: 20 }).map((_, i) => (
         <div
           key={i}
-          className="bg-[#0F1318] rounded-lg p-3.5 animate-pulse border border-white/[0.06]"
+          className="bg-[#0F1318] rounded-lg p-3.5 animate-pulse border border-white/6"
         >
           <div className="w-12 h-12 rounded-md bg-white/5 mb-3" />
           <div className="h-3 bg-white/5 rounded mb-2 w-3/4" />
@@ -1045,7 +1050,7 @@ function LoadingSkeleton({ viewMode }) {
       {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}
-          className="bg-[#0F1318] rounded-lg p-2.5 animate-pulse border border-white/[0.06] flex items-center gap-3"
+          className="bg-[#0F1318] rounded-lg p-2.5 animate-pulse border border-white/6 flex items-center gap-3"
         >
           <div className="w-9 h-9 rounded-md bg-white/5 shrink-0" />
           <div className="flex-1">
