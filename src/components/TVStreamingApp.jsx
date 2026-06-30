@@ -530,7 +530,7 @@ function PlayerPane({ channel, stream, logo, onClose }) {
           )
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center text-center px-8">
-            <div className="w-14 h-14 rounded-xl bg-white/[0.04] flex items-center justify-center mb-4 text-slate-500">
+            <div className="w-14 h-14 rounded-xl bg-white/4 flex items-center justify-center mb-4 text-slate-500">
               <IconTV />
             </div>
             <p className="text-slate-400 text-sm">
