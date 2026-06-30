@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Hls from "hls.js";
 import { useFavorites } from "@/context/FavoritesContext";
 import DataContext from "@/context/DataContext";
 
@@ -57,6 +58,18 @@ const IconX = () => (
   >
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+const IconArrowLeft = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    className="w-5 h-5"
+  >
+    <line x1="19" y1="12" x2="5" y2="12" />
+    <polyline points="12 19 5 12 12 5" />
   </svg>
 );
 const IconMenu = () => (
@@ -115,11 +128,28 @@ const IconGlobe = () => (
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </svg>
 );
+const IconAlert = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    className="w-6 h-6"
+  >
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
 
 // ─── Live badge ────────────────────────────────────────────────────────────────
-function LiveBadge() {
+function LiveBadge({ size = "md" }) {
+  const cls =
+    size === "sm" ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]";
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-widest bg-red-600 text-white">
+    <span
+      className={`inline-flex items-center gap-1 ${cls} rounded-sm font-bold tracking-[0.12em] bg-[#E0421A] text-white font-mono`}
+    >
       <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
       LIVE
     </span>
@@ -133,7 +163,7 @@ function ChannelLogo({ logoUrl, name, size = "md" }) {
     size === "lg"
       ? "w-16 h-16 text-xl"
       : size === "sm"
-        ? "w-8 h-8 text-xs"
+        ? "w-9 h-9 text-[11px]"
         : "w-12 h-12 text-sm";
 
   if (!err && logoUrl) {
@@ -142,14 +172,14 @@ function ChannelLogo({ logoUrl, name, size = "md" }) {
         src={logoUrl}
         alt={name}
         onError={() => setErr(true)}
-        className={`${sizeClass} object-contain rounded`}
+        className={`${sizeClass} object-contain rounded-md bg-white/[0.03] p-1 ring-1 ring-white/[0.06]`}
         loading="lazy"
       />
     );
   }
   return (
     <div
-      className={`${sizeClass} rounded bg-linear-to-br from-indigo-900 to-blue-900 flex items-center justify-center font-bold text-blue-300`}
+      className={`${sizeClass} rounded-md bg-[#171C26] ring-1 ring-white/[0.06] flex items-center justify-center font-bold font-mono text-[#F5A623]/80`}
     >
       {name?.slice(0, 2).toUpperCase() || "TV"}
     </div>
@@ -157,74 +187,83 @@ function ChannelLogo({ logoUrl, name, size = "md" }) {
 }
 
 // ─── Channel Card (grid view) ─────────────────────────────────────────────────
-function ChannelCard({ channel, logo, stream, onSelect, isFav, onToggleFav }) {
+function ChannelCard({
+  channel,
+  logo,
+  stream,
+  onSelect,
+  isFav,
+  onToggleFav,
+  isActive,
+}) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.2 }}
-      className="group relative bg-[#111827] border border-white/5 rounded-xl overflow-hidden cursor-pointer hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-900/20 transition-all duration-200"
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.18 }}
+      className={`group relative bg-[#0F1318] border rounded-lg overflow-hidden cursor-pointer transition-colors duration-150 ${
+        isActive
+          ? "border-[#F5A623]/60 ring-1 ring-[#F5A623]/30"
+          : "border-white/[0.06] hover:border-white/[0.14]"
+      }`}
       onClick={() => onSelect(channel, stream, logo)}
     >
-      {/* linear top bar */}
-      <div className="h-0.5 bg-linear-to-r from-indigo-600 via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-      <div className="p-4">
+      <div className="p-3.5">
         <div className="flex items-start justify-between mb-3">
           <ChannelLogo logoUrl={logo?.url} name={channel.name} />
-          <div className="flex items-center gap-2">
-            {stream && <LiveBadge />}
+          <div className="flex items-center gap-1.5">
+            {stream && <LiveBadge size="sm" />}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFav(channel);
               }}
-              className={`p-1.5 rounded-lg transition-colors ${isFav ? "text-yellow-400 bg-yellow-400/10" : "text-slate-600 hover:text-yellow-400 hover:bg-yellow-400/10"}`}
+              className={`p-1.5 rounded-md transition-colors ${
+                isFav
+                  ? "text-[#F5A623] bg-[#F5A623]/10"
+                  : "text-slate-600 hover:text-[#F5A623] hover:bg-white/5"
+              }`}
             >
               <IconStar filled={isFav} />
             </button>
           </div>
         </div>
 
-        <h3 className="font-semibold text-white text-sm leading-tight line-clamp-1 mb-1">
+        <h3 className="font-semibold text-white text-[13px] leading-tight line-clamp-1 mb-1.5 tracking-tight">
           {channel.name}
         </h3>
 
         <div className="flex items-center gap-2 flex-wrap">
           {channel.country && (
-            <span className="text-[11px] text-slate-500 flex items-center gap-1">
+            <span className="text-[10px] text-slate-500 flex items-center gap-1 font-mono">
               <IconGlobe />
               {channel.country}
             </span>
           )}
           {channel.categories?.[0] && (
-            <span className="text-[11px] px-1.5 py-0.5 rounded bg-indigo-950/60 text-indigo-400 border border-indigo-900/50 capitalize">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-white/[0.04] text-slate-400 border border-white/[0.06] capitalize">
               {channel.categories[0]}
             </span>
           )}
         </div>
 
         {stream && (
-          <div className="mt-3 pt-3 border-t border-white/5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">
-                {stream.quality || "HD"}
-              </span>
-              <span className="text-[11px] text-emerald-500 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Available
-              </span>
-            </div>
+          <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between">
+            <span className="text-[10px] text-slate-500 font-mono uppercase tracking-wide">
+              {stream.quality || "HD"}
+            </span>
+            <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Online
+            </span>
           </div>
         )}
       </div>
 
-      {/* Play overlay */}
-      <div className="absolute inset-0 bg-indigo-600/0 group-hover:bg-indigo-600/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
-        <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center border border-white/20">
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-black/10">
+        <div className="w-9 h-9 rounded-full bg-[#F5A623] flex items-center justify-center text-[#0B0E14] shadow-lg">
           <IconPlay />
         </div>
       </div>
@@ -232,63 +271,178 @@ function ChannelCard({ channel, logo, stream, onSelect, isFav, onToggleFav }) {
   );
 }
 
-// ─── Channel Row (list view) ──────────────────────────────────────────────────
-function ChannelRow({ channel, logo, stream, onSelect, isFav, onToggleFav }) {
+// ─── Channel Row (list view / rail) ───────────────────────────────────────────
+function ChannelRow({
+  channel,
+  logo,
+  stream,
+  onSelect,
+  isFav,
+  onToggleFav,
+  isActive,
+  compact,
+}) {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: -8 }}
+      initial={{ opacity: 0, x: -6 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0 }}
-      className="group flex items-center gap-4 p-3 rounded-xl bg-[#111827] border border-white/5 hover:border-indigo-500/30 cursor-pointer transition-all duration-150 hover:bg-[#151f2e]"
+      className={`group flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors duration-150 ${
+        isActive
+          ? "bg-[#F5A623]/[0.08] border-[#F5A623]/40"
+          : "bg-[#0F1318] border-white/[0.06] hover:border-white/[0.14] hover:bg-[#13171F]"
+      }`}
       onClick={() => onSelect(channel, stream, logo)}
     >
       <ChannelLogo logoUrl={logo?.url} name={channel.name} size="sm" />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-white text-sm truncate">
+          <span
+            className={`font-medium text-sm truncate ${isActive ? "text-[#F5A623]" : "text-white"}`}
+          >
             {channel.name}
           </span>
-          {stream && <LiveBadge />}
+          {stream && !compact && <LiveBadge size="sm" />}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11px] text-slate-500">{channel.country}</span>
-          {channel.categories?.[0] && (
-            <span className="text-[11px] text-indigo-400 capitalize">
+          <span className="text-[10px] text-slate-500 font-mono">
+            {channel.country}
+          </span>
+          {!compact && channel.categories?.[0] && (
+            <span className="text-[10px] text-slate-500 capitalize">
               {channel.categories[0]}
             </span>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
-        {stream?.quality && (
-          <span className="text-[11px] text-slate-500 hidden sm:block">
-            {stream.quality}
-          </span>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFav(channel);
-          }}
-          className={`p-1.5 rounded-lg transition-colors ${isFav ? "text-yellow-400" : "text-slate-600 hover:text-yellow-400"}`}
-        >
-          <IconStar filled={isFav} />
-        </button>
-        <div className="p-1.5 text-slate-600 group-hover:text-indigo-400 transition-colors">
-          <IconPlay />
+      {!compact && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          {stream?.quality && (
+            <span className="text-[10px] text-slate-500 hidden sm:block font-mono">
+              {stream.quality}
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFav(channel);
+            }}
+            className={`p-1.5 rounded-md transition-colors ${isFav ? "text-[#F5A623]" : "text-slate-600 hover:text-[#F5A623]"}`}
+          >
+            <IconStar filled={isFav} />
+          </button>
         </div>
-      </div>
+      )}
+      {stream && compact && (
+        <span className="w-1.5 h-1.5 rounded-full bg-[#E0421A] shrink-0" />
+      )}
     </motion.div>
   );
 }
 
-// ─── Video Player Modal ────────────────────────────────────────────────────────
-function PlayerModal({ channel, stream, logo, onClose }) {
+// ─── HLS Video Player ──────────────────────────────────────────────────────────
+function HlsPlayer({ src }) {
   const videoRef = useRef(null);
+  const hlsRef = useRef(null);
+  const [status, setStatus] = useState("loading"); // loading | playing | error
+  const [errorMsg, setErrorMsg] = useState("");
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    setStatus("loading");
+    setErrorMsg("");
+
+    let hls;
+
+    if (Hls.isSupported()) {
+      hls = new Hls({
+        maxBufferLength: 30,
+        enableWorker: true,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+        setStatus("playing");
+      });
+
+      hls.on(Hls.Events.ERROR, (_evt, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              setErrorMsg("Network error while loading the stream.");
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              setErrorMsg(
+                "Playback error — the stream format may be unsupported.",
+              );
+              break;
+            default:
+              setErrorMsg("This stream could not be loaded.");
+          }
+          setStatus("error");
+          hls.destroy();
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Native HLS support (Safari)
+      video.src = src;
+      video.addEventListener("loadedmetadata", () => {
+        video.play().catch(() => {});
+        setStatus("playing");
+      });
+      video.addEventListener("error", () => {
+        setErrorMsg("This stream could not be loaded.");
+        setStatus("error");
+      });
+    } else {
+      setErrorMsg("HLS playback is not supported in this browser.");
+      setStatus("error");
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src]);
+
+  return (
+    <div className="relative w-full h-full bg-black flex items-center justify-center">
+      <video ref={videoRef} className="w-full h-full" controls playsInline />
+
+      {status === "loading" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black pointer-events-none">
+          <div className="w-8 h-8 border-2 border-white/15 border-t-[#F5A623] rounded-full animate-spin" />
+          <span className="text-xs text-slate-500 font-mono uppercase tracking-wide">
+            Connecting to feed
+          </span>
+        </div>
+      )}
+
+      {status === "error" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0B0E14] px-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-[#E0421A]/10 text-[#E0421A] flex items-center justify-center">
+            <IconAlert />
+          </div>
+          <p className="text-white text-sm font-medium">Stream unavailable</p>
+          <p className="text-slate-500 text-xs max-w-xs">{errorMsg}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Player Pane (split view, replaces modal) ─────────────────────────────────
+function PlayerPane({ channel, stream, logo, onClose }) {
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") onClose();
@@ -297,127 +451,122 @@ function PlayerModal({ channel, stream, logo, onClose }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
+  const isHls = stream?.url && /\.m3u8($|\?)/i.test(stream.url);
+
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ scale: 0.92, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.92, opacity: 0 }}
-          transition={{ type: "spring", damping: 25 }}
-          className="w-full max-w-4xl bg-[#0d1220] rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
+    <motion.div
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 24 }}
+      transition={{ type: "spring", damping: 28, stiffness: 280 }}
+      className="flex flex-col h-full bg-[#070A10] lg:border-l border-white/[0.06]"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-white/[0.06] shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+          >
+            <IconArrowLeft />
+          </button>
+          <ChannelLogo logoUrl={logo?.url} name={channel.name} size="sm" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-white text-sm truncate">
+                {channel.name}
+              </span>
+              {stream && <LiveBadge size="sm" />}
+            </div>
+            <span className="text-[11px] text-slate-500 font-mono truncate block">
+              {channel.country} · {channel.categories?.[0] || "General"}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="hidden sm:flex p-2 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
         >
-          {/* Player header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
-            <div className="flex items-center gap-3">
-              <ChannelLogo logoUrl={logo?.url} name={channel.name} size="sm" />
+          <IconX />
+        </button>
+      </div>
+
+      {/* Player area */}
+      <div className="aspect-video lg:aspect-auto lg:flex-1 bg-black relative">
+        {stream?.url ? (
+          isHls ? (
+            <HlsPlayer src={stream.url} />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-8">
+              <div className="w-14 h-14 rounded-xl bg-[#F5A623]/10 border border-[#F5A623]/25 flex items-center justify-center text-[#F5A623]">
+                <IconTV />
+              </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-white">
-                    {channel.name}
-                  </span>
-                  {stream && <LiveBadge />}
+                <p className="text-white font-medium mb-1 text-sm">
+                  Non-HLS stream
+                </p>
+                <p className="text-slate-500 text-xs mb-4 max-w-sm">
+                  This source isn't an HLS (.m3u8) feed. Copy the URL into VLC
+                  or a compatible player.
+                </p>
+                <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-md px-3 py-2 max-w-md mx-auto">
+                  <code className="text-[11px] text-[#F5A623]/90 truncate flex-1 font-mono">
+                    {stream.url}
+                  </code>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(stream.url)}
+                    className="text-[11px] text-slate-400 hover:text-white bg-white/[0.06] px-2 py-1 rounded shrink-0 transition-colors"
+                  >
+                    Copy
+                  </button>
                 </div>
-                <span className="text-xs text-slate-500">
-                  {channel.country} · {channel.categories?.[0] || "General"}
-                </span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <IconX />
-            </button>
-          </div>
-
-          {/* Player area */}
-          <div className="aspect-video bg-black relative flex items-center justify-center">
-            {stream?.url ? (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-center px-8">
-                <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-                  <IconTV />
-                </div>
-                <div>
-                  <p className="text-white font-medium mb-1">
-                    Stream Available
-                  </p>
-                  <p className="text-slate-400 text-sm mb-4 max-w-sm">
-                    This stream requires a compatible media player. Copy the URL
-                    below to watch in VLC or your IPTV app.
-                  </p>
-                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 max-w-md mx-auto">
-                    <code className="text-xs text-indigo-300 truncate flex-1">
-                      {stream.url}
-                    </code>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(stream.url)}
-                      className="text-xs text-slate-400 hover:text-white bg-white/10 px-2 py-1 rounded shrink-0 transition-colors"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-                {stream.quality && (
-                  <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">
-                    {stream.quality}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                  <IconTV />
-                </div>
-                <p className="text-slate-400">
-                  No stream available for this channel
-                </p>
-                {channel.website && (
-                  <a
-                    href={channel.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-block text-indigo-400 hover:text-indigo-300 text-sm underline underline-offset-2"
-                  >
-                    Visit official website →
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Info bar */}
-          <div className="px-5 py-3 border-t border-white/8 flex items-center gap-4 text-xs text-slate-500 flex-wrap">
-            {channel.network && (
-              <span>
-                Network:{" "}
-                <span className="text-slate-300">{channel.network}</span>
-              </span>
-            )}
-            {stream?.label && (
-              <span className="text-amber-400">{stream.label}</span>
-            )}
+          )
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-center px-8">
+            <div className="w-14 h-14 rounded-xl bg-white/[0.04] flex items-center justify-center mb-4 text-slate-500">
+              <IconTV />
+            </div>
+            <p className="text-slate-400 text-sm">
+              No stream available for this channel
+            </p>
             {channel.website && (
               <a
                 href={channel.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-indigo-400 hover:text-indigo-300 ml-auto"
+                className="mt-3 inline-block text-[#F5A623] hover:text-[#ffb840] text-xs underline underline-offset-2 font-mono"
               >
-                Official Site →
+                Visit official website →
               </a>
             )}
           </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+        )}
+      </div>
+
+      {/* Info bar */}
+      <div className="px-4 sm:px-5 py-3 border-t border-white/[0.06] flex items-center gap-4 text-[11px] text-slate-500 flex-wrap shrink-0 font-mono">
+        {channel.network && (
+          <span>
+            NETWORK <span className="text-slate-300">{channel.network}</span>
+          </span>
+        )}
+        {stream?.label && (
+          <span className="text-[#F5A623]/80">{stream.label}</span>
+        )}
+        {channel.website && (
+          <a
+            href={channel.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#F5A623]/80 hover:text-[#F5A623] ml-auto"
+          >
+            OFFICIAL SITE →
+          </a>
+        )}
+      </div>
+    </motion.div>
   );
 }
 
@@ -431,21 +580,20 @@ function Sidebar({
   favCount,
 }) {
   const navItems = [
-    { id: "all", label: "All Channels", icon: "📺" },
-    { id: "favorites", label: `My Watchlist`, icon: "⭐", badge: favCount },
-    { id: "live", label: "Live Now", icon: "🔴" },
+    { id: "all", label: "All Channels", icon: "▦" },
+    { id: "favorites", label: "Watchlist", icon: "★", badge: favCount },
+    { id: "live", label: "Live Now", icon: "●" },
   ];
 
   return (
     <>
-      {/* Mobile backdrop */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+            className="fixed inset-0 bg-black/70 z-30 lg:hidden"
             onClick={onClose}
           />
         )}
@@ -455,20 +603,20 @@ function Sidebar({
         initial={false}
         animate={{ x: isOpen ? 0 : "-100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed top-0 left-0 h-full w-64 bg-[#090d18] border-r border-white/5 z-40 flex flex-col lg:translate-x-0 lg:static lg:z-auto"
+        className="fixed top-0 left-0 h-full w-64 bg-[#0A0D13] border-r border-white/[0.06] z-40 flex flex-col lg:translate-x-0 lg:static lg:z-auto lg:shrink-0"
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/5">
+        <div className="px-5 py-5 border-b border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-indigo-600 to-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-md bg-[#F5A623] flex items-center justify-center text-[#0B0E14]">
               <IconTV />
             </div>
             <div>
-              <span className="font-bold text-white tracking-tight">
+              <span className="font-bold text-white tracking-tight text-sm">
                 StreamVault
               </span>
-              <div className="text-[10px] text-indigo-400 leading-none">
-                IPTV Directory
+              <div className="text-[10px] text-[#F5A623]/80 leading-none font-mono uppercase tracking-wider mt-0.5">
+                IPTV Console
               </div>
             </div>
           </div>
@@ -476,7 +624,7 @@ function Sidebar({
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-          <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest px-2 mb-2">
+          <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.15em] px-2 mb-2 font-mono">
             Navigation
           </p>
           {navItems.map((item) => (
@@ -486,18 +634,18 @@ function Sidebar({
                 onCategoryChange(item.id);
                 onClose();
               }}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-md text-sm transition-colors ${
                 activeCategory === item.id
-                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-white/5"
+                  ? "bg-[#F5A623]/[0.12] text-[#F5A623] border border-[#F5A623]/25"
+                  : "text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
               }`}
             >
               <span className="flex items-center gap-2.5">
-                <span>{item.icon}</span>
+                <span className="font-mono text-xs w-3">{item.icon}</span>
                 {item.label}
               </span>
               {item.badge > 0 && (
-                <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] bg-[#F5A623] text-[#0B0E14] px-1.5 py-0.5 rounded-sm font-bold font-mono">
                   {item.badge}
                 </span>
               )}
@@ -505,7 +653,7 @@ function Sidebar({
           ))}
 
           <div className="pt-4 pb-1">
-            <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest px-2 mb-2">
+            <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.15em] px-2 mb-2 font-mono">
               Categories
             </p>
             {categories?.map((cat) => (
@@ -515,10 +663,10 @@ function Sidebar({
                   onCategoryChange(cat.id);
                   onClose();
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all capitalize ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors capitalize ${
                   activeCategory === cat.id
-                    ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/20"
-                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                    ? "bg-[#F5A623]/[0.12] text-[#F5A623] border border-[#F5A623]/25"
+                    : "text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
                 }`}
               >
                 {cat.name}
@@ -527,9 +675,8 @@ function Sidebar({
           </div>
         </nav>
 
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-white/5">
-          <p className="text-[10px] text-slate-600 text-center">
+        <div className="px-4 py-3 border-t border-white/[0.06]">
+          <p className="text-[10px] text-slate-600 text-center font-mono">
             Powered by iptv-org
           </p>
         </div>
@@ -555,7 +702,6 @@ export default function TVStreamingApp() {
   const [page, setPage] = useState(1);
   const PER_PAGE = 48;
 
-  // Build maps for O(1) lookups
   const logoMap = useCallback(() => {
     if (!logos) return {};
     return logos.reduce((acc, l) => {
@@ -575,7 +721,6 @@ export default function TVStreamingApp() {
   const logoLookup = logoMap();
   const streamLookup = streamMap();
 
-  // Filter channels
   const filtered = useCallback(() => {
     if (!channels) return [];
     let list = channels;
@@ -617,10 +762,9 @@ export default function TVStreamingApp() {
   ]);
 
   const allFiltered = filtered();
-  const totalPages = Math.ceil(allFiltered.length / PER_PAGE);
   const paginated = allFiltered.slice(0, page * PER_PAGE);
+  const isPlayerOpen = !!selectedChannel;
 
-  // Reset page on filter change
   useEffect(() => {
     setPage(1);
   }, [search, activeCategory, countryFilter]);
@@ -631,20 +775,22 @@ export default function TVStreamingApp() {
     setSelectedLogo(logo || null);
   };
 
+  const closePlayer = () => {
+    setSelectedChannel(null);
+    setSelectedStream(null);
+    setSelectedLogo(null);
+  };
+
   const liveCount = streams
     ? new Set(streams.map((s) => s.channel).filter(Boolean)).size
     : 0;
-
-  // Unique countries
   const countries = channels
     ? [...new Set(channels.map((c) => c.country).filter(Boolean))].sort()
     : [];
-
   const loading = !channels || !streams || !logos || !categories;
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] text-white flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-[#0A0E1A] text-white flex font-sans">
       <Sidebar
         categories={categories}
         activeCategory={activeCategory}
@@ -657,19 +803,24 @@ export default function TVStreamingApp() {
         favCount={favorites.length}
       />
 
-      {/* Main */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      {/* Channel list column — shrinks to a rail when player is open on desktop */}
+      <motion.div
+        layout
+        transition={{ type: "spring", damping: 30, stiffness: 280 }}
+        className={`flex flex-col min-w-0 ${isPlayerOpen ? "lg:w-[360px] lg:shrink-0" : "flex-1"} ${
+          isPlayerOpen ? "hidden lg:flex" : "flex flex-1"
+        }`}
+      >
         {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-[#0A0E1A]/95 backdrop-blur border-b border-white/5 px-4 sm:px-6 py-3">
+        <header className="sticky top-0 z-20 bg-[#0A0E1A]/95 backdrop-blur border-b border-white/[0.06] px-4 sm:px-6 py-3 shrink-0">
           <div className="flex items-center gap-3">
             <button
-              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5"
+              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-md hover:bg-white/5"
               onClick={() => setSidebarOpen(true)}
             >
               <IconMenu />
             </button>
 
-            {/* Search */}
             <div className="relative flex-1 max-w-md">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                 <IconSearch />
@@ -677,8 +828,8 @@ export default function TVStreamingApp() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search channels, networks..."
-                className="w-full bg-white/5 border border-white/8 rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/60 focus:bg-white/8 transition-all"
+                placeholder="Search channels, networks…"
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#F5A623]/50 focus:bg-white/[0.06] transition-colors"
               />
               {search && (
                 <button
@@ -690,84 +841,119 @@ export default function TVStreamingApp() {
               )}
             </div>
 
-            {/* Country filter */}
-            <select
-              value={countryFilter}
-              onChange={(e) => setCountryFilter(e.target.value)}
-              className="hidden sm:block bg-white/5 border border-white/8 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/60 cursor-pointer"
-            >
-              <option value="">All Countries</option>
-              {countries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            {!isPlayerOpen && (
+              <select
+                value={countryFilter}
+                onChange={(e) => setCountryFilter(e.target.value)}
+                className="hidden sm:block bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-[#F5A623]/50 cursor-pointer"
+              >
+                <option value="">All Countries</option>
+                {countries.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
 
-            {/* View toggle */}
-            <div className="flex items-center bg-white/5 border border-white/8 rounded-xl p-1 gap-0.5">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-lg transition-colors ${viewMode === "grid" ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-white"}`}
-              >
-                <IconGrid />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-lg transition-colors ${viewMode === "list" ? "bg-indigo-600 text-white" : "text-slate-500 hover:text-white"}`}
-              >
-                <IconList />
-              </button>
-            </div>
+            {!isPlayerOpen && (
+              <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-lg p-1 gap-0.5">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-[#F5A623] text-[#0B0E14]"
+                      : "text-slate-500 hover:text-white"
+                  }`}
+                >
+                  <IconGrid />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === "list"
+                      ? "bg-[#F5A623] text-[#0B0E14]"
+                      : "text-slate-500 hover:text-white"
+                  }`}
+                >
+                  <IconList />
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
         {/* Stats bar */}
-        <div className="px-4 sm:px-6 py-3 border-b border-white/5 flex items-center gap-4 sm:gap-6 overflow-x-auto">
-          {loading ? (
-            <div className="h-4 w-48 bg-white/5 rounded animate-pulse" />
-          ) : (
-            <>
-              <StatPill
-                label="Channels"
-                value={allFiltered.length.toLocaleString()}
-              />
-              <StatPill
-                label="Live Now"
-                value={liveCount.toLocaleString()}
-                color="emerald"
-              />
-              <StatPill
-                label="Watchlist"
-                value={favorites.length}
-                color="yellow"
-              />
-              {activeCategory !== "all" && (
-                <button
-                  onClick={() => {
-                    setActiveCategory("all");
-                    setSearch("");
-                    setCountryFilter("");
-                  }}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 ml-auto shrink-0"
-                >
-                  <IconX /> Clear filters
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {!isPlayerOpen && (
+          <div className="px-4 sm:px-6 py-3 border-b border-white/[0.06] flex items-center gap-4 sm:gap-6 overflow-x-auto shrink-0">
+            {loading ? (
+              <div className="h-4 w-48 bg-white/5 rounded animate-pulse" />
+            ) : (
+              <>
+                <StatPill
+                  label="Channels"
+                  value={allFiltered.length.toLocaleString()}
+                />
+                <StatPill
+                  label="Live Now"
+                  value={liveCount.toLocaleString()}
+                  color="emerald"
+                />
+                <StatPill
+                  label="Watchlist"
+                  value={favorites.length}
+                  color="amber"
+                />
+                {activeCategory !== "all" && (
+                  <button
+                    onClick={() => {
+                      setActiveCategory("all");
+                      setSearch("");
+                      setCountryFilter("");
+                    }}
+                    className="text-xs text-[#F5A623] hover:text-[#ffb840] flex items-center gap-1 ml-auto shrink-0 font-mono"
+                  >
+                    <IconX /> CLEAR
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* Content */}
-        <main className="flex-1 px-4 sm:px-6 py-6">
+        <main
+          className={`flex-1 overflow-y-auto ${isPlayerOpen ? "px-3 py-3" : "px-4 sm:px-6 py-6"}`}
+        >
           {loading ? (
-            <LoadingSkeleton viewMode={viewMode} />
+            <LoadingSkeleton viewMode={isPlayerOpen ? "list" : viewMode} />
           ) : allFiltered.length === 0 ? (
             <EmptyState category={activeCategory} search={search} />
           ) : (
             <>
               <AnimatePresence mode="popLayout">
-                {viewMode === "grid" ? (
+                {isPlayerOpen || viewMode === "list" ? (
+                  <motion.div
+                    key="list"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col gap-2"
+                  >
+                    {paginated.map((ch) => (
+                      <ChannelRow
+                        key={ch.id}
+                        channel={ch}
+                        logo={logoLookup[ch.id]}
+                        stream={streamLookup[ch.id]}
+                        onSelect={handleSelect}
+                        isFav={checkFavorite(ch.id)}
+                        onToggleFav={toggleFavorite}
+                        isActive={selectedChannel?.id === ch.id}
+                        compact={isPlayerOpen}
+                      />
+                    ))}
+                  </motion.div>
+                ) : (
                   <motion.div
                     key="grid"
                     initial={{ opacity: 0 }}
@@ -780,40 +966,21 @@ export default function TVStreamingApp() {
                         channel={ch}
                         logo={logoLookup[ch.id]}
                         stream={streamLookup[ch.id]}
-                        onSelect={(c, s, l) => handleSelect(c, s, l)}
+                        onSelect={handleSelect}
                         isFav={checkFavorite(ch.id)}
                         onToggleFav={toggleFavorite}
-                      />
-                    ))}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="list"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col gap-2 max-w-3xl"
-                  >
-                    {paginated.map((ch) => (
-                      <ChannelRow
-                        key={ch.id}
-                        channel={ch}
-                        logo={logoLookup[ch.id]}
-                        stream={streamLookup[ch.id]}
-                        onSelect={(c, s, l) => handleSelect(c, s, l)}
-                        isFav={checkFavorite(ch.id)}
-                        onToggleFav={toggleFavorite}
+                        isActive={selectedChannel?.id === ch.id}
                       />
                     ))}
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Load more */}
               {page * PER_PAGE < allFiltered.length && (
                 <div className="flex justify-center mt-8">
                   <button
                     onClick={() => setPage((p) => p + 1)}
-                    className="px-6 py-2.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/30 hover:text-white text-sm font-medium transition-all"
+                    className="px-6 py-2.5 rounded-lg bg-[#F5A623]/10 border border-[#F5A623]/25 text-[#F5A623] hover:bg-[#F5A623]/15 text-sm font-medium transition-colors"
                   >
                     Load more · {allFiltered.length - page * PER_PAGE} remaining
                   </button>
@@ -822,21 +989,19 @@ export default function TVStreamingApp() {
             </>
           )}
         </main>
-      </div>
+      </motion.div>
 
-      {/* Player Modal */}
+      {/* Player pane */}
       <AnimatePresence>
-        {selectedChannel && (
-          <PlayerModal
-            channel={selectedChannel}
-            stream={selectedStream}
-            logo={selectedLogo}
-            onClose={() => {
-              setSelectedChannel(null);
-              setSelectedStream(null);
-              setSelectedLogo(null);
-            }}
-          />
+        {isPlayerOpen && (
+          <div className="fixed inset-0 z-40 lg:static lg:z-auto lg:flex-1 lg:min-w-0">
+            <PlayerPane
+              channel={selectedChannel}
+              stream={selectedStream}
+              logo={selectedLogo}
+              onClose={closePlayer}
+            />
+          </div>
         )}
       </AnimatePresence>
     </div>
@@ -847,12 +1012,16 @@ function StatPill({ label, value, color = "slate" }) {
   const colors = {
     slate: "text-slate-400",
     emerald: "text-emerald-400",
-    yellow: "text-yellow-400",
+    amber: "text-[#F5A623]",
   };
   return (
     <div className="flex items-center gap-2 shrink-0">
-      <span className={`text-base font-bold ${colors[color]}`}>{value}</span>
-      <span className="text-xs text-slate-600">{label}</span>
+      <span className={`text-base font-bold font-mono ${colors[color]}`}>
+        {value}
+      </span>
+      <span className="text-[11px] text-slate-600 uppercase tracking-wide font-mono">
+        {label}
+      </span>
     </div>
   );
 }
@@ -863,22 +1032,22 @@ function LoadingSkeleton({ viewMode }) {
       {Array.from({ length: 20 }).map((_, i) => (
         <div
           key={i}
-          className="bg-[#111827] rounded-xl p-4 animate-pulse border border-white/5"
+          className="bg-[#0F1318] rounded-lg p-3.5 animate-pulse border border-white/[0.06]"
         >
-          <div className="w-12 h-12 rounded bg-white/5 mb-3" />
+          <div className="w-12 h-12 rounded-md bg-white/5 mb-3" />
           <div className="h-3 bg-white/5 rounded mb-2 w-3/4" />
           <div className="h-3 bg-white/5 rounded w-1/2" />
         </div>
       ))}
     </div>
   ) : (
-    <div className="flex flex-col gap-2 max-w-3xl">
+    <div className="flex flex-col gap-2">
       {Array.from({ length: 12 }).map((_, i) => (
         <div
           key={i}
-          className="bg-[#111827] rounded-xl p-3 animate-pulse border border-white/5 flex items-center gap-4"
+          className="bg-[#0F1318] rounded-lg p-2.5 animate-pulse border border-white/[0.06] flex items-center gap-3"
         >
-          <div className="w-8 h-8 rounded bg-white/5 shrink-0" />
+          <div className="w-9 h-9 rounded-md bg-white/5 shrink-0" />
           <div className="flex-1">
             <div className="h-3 bg-white/5 rounded mb-2 w-1/3" />
             <div className="h-2.5 bg-white/5 rounded w-1/4" />
@@ -896,10 +1065,10 @@ function EmptyState({ category, search }) {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center py-24 text-center"
     >
-      <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4 text-2xl">
-        {category === "favorites" ? "⭐" : "📺"}
+      <div className="w-14 h-14 rounded-xl bg-white/[0.04] flex items-center justify-center mb-4 text-[#F5A623]">
+        {category === "favorites" ? <IconStar filled /> : <IconTV />}
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">
+      <h3 className="text-base font-semibold text-white mb-2">
         {category === "favorites"
           ? "Your watchlist is empty"
           : "No channels found"}
