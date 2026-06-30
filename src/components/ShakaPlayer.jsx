@@ -228,6 +228,22 @@ export default function ShakaPlayer({ src }) {
         setStatus("error");
         setErrorMsg(err.message || "Unable to load stream.");
       }
+
+      // Poll live stats (bitrate / dropped frames / bandwidth estimate)
+      // statsInterval = setInterval(() => {
+      //   const p = playerRef.current;
+      //   if (!p) return;
+      //   try {
+      //     const s = p.getStats();
+      //     setStats({
+      //       bitrate: s.streamBandwidth || 0,
+      //       droppedFrames: s.droppedFrames || 0,
+      //       bandwidth: s.estimatedBandwidth || 0,
+      //     });
+      //   } catch {
+      //     // ignore transient stat errors
+      //   }
+      // }, 2000);
     };
 
     initPlayer();
@@ -428,7 +444,7 @@ export default function ShakaPlayer({ src }) {
             )}
           </div>
 
-          <div className="flex items-center gap-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5">
+          <div className="flex  items-center gap-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 px-3 py-1.5">
             <IconSignal
               className={`w-3.5 h-3.5 ${
                 signalLevel >= 3
@@ -452,8 +468,8 @@ export default function ShakaPlayer({ src }) {
           className="absolute inset-0 flex items-center justify-center"
           aria-label="Play"
         >
-          <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-md border border-white/15 flex items-center justify-center hover:bg-black/55 hover:scale-105 transition-all">
-            <IconPlay className="w-7 h-7 text-white ml-1" />
+          <div className="w-16 h-16 cursor-pointer rounded-full bg-black/40 backdrop-blur-md border border-white/15 flex flex-col items-center justify-center hover:bg-black/55 hover:scale-105 transition-all">
+            <IconPlay className="w-8 h-8 text-white" />
           </div>
         </button>
       )}
@@ -502,7 +518,7 @@ export default function ShakaPlayer({ src }) {
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlay}
-                  className="w-8 h-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors"
+                  className="w-8 h-8 flex items-center cursor-pointer justify-center rounded-full text-white hover:bg-white/10 transition-colors"
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? (
@@ -515,7 +531,7 @@ export default function ShakaPlayer({ src }) {
                 <div className="flex items-center gap-1.5 group/vol">
                   <button
                     onClick={toggleMute}
-                    className="w-8 h-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors"
+                    className="w-8 h-8 flex items-center cursor-pointer justify-center rounded-full text-white hover:bg-white/10 transition-colors"
                     aria-label={isMuted ? "Unmute" : "Mute"}
                   >
                     {isMuted || volume === 0 ? (
@@ -605,7 +621,7 @@ export default function ShakaPlayer({ src }) {
 
                 <button
                   onClick={toggleFullscreen}
-                  className="w-8 h-8 flex items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors"
+                  className="w-8 h-8 flex cursor-pointer items-center justify-center rounded-full text-white hover:bg-white/10 transition-colors"
                   aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
                   {isFullscreen ? (
