@@ -217,11 +217,6 @@ export default function ShakaPlayer({ src }) {
         setErrorMsg(humanizeShakaError(event.detail));
       });
 
-      // player.addEventListener("buffering", (event) => {
-      //   if (event.buffering) setStatus("loading");
-      //   else setStatus((s) => (s === "loading" ? "playing" : s));
-      // });
-
       try {
         await player.load(src);
 
@@ -289,8 +284,6 @@ export default function ShakaPlayer({ src }) {
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
-
-  // ---- Controls auto-hide ----
 
   // ---- Manual retry ----
 
@@ -635,7 +628,7 @@ export default function ShakaPlayer({ src }) {
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#F5A623] animate-spin" />
           </div>
           <span className="text-[11px] text-slate-500 font-mono uppercase tracking-[0.2em]">
-            Connecting to stream
+            Loading...
           </span>
         </div>
       )}
@@ -654,13 +647,6 @@ export default function ShakaPlayer({ src }) {
               {errorMsg}
             </p>
           </div>
-          <button
-            onClick={retry}
-            className="mt-1 flex items-center gap-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 text-xs font-medium text-slate-300 hover:text-white transition-colors"
-          >
-            <IconRefresh className="w-3.5 h-3.5" />
-            Retry
-          </button>
         </div>
       )}
     </div>
