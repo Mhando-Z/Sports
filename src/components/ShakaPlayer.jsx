@@ -537,7 +537,7 @@ export default function ShakaPlayer({ src }) {
                 </div>
 
                 {!isLive && (
-                  <span className="text-[11px] font-mono text-slate-300 tabular-nums">
+                  <span className="text-[11px] ml-4 font-mono text-slate-300 tabular-nums">
                     {formatTime(currentTime)}{" "}
                     <span className="text-slate-500">/</span>{" "}
                     {formatTime(duration)}
