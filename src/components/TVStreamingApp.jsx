@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Hls from "hls.js";
 import { useFavorites } from "@/context/FavoritesContext";
 import DataContext from "@/context/DataContext";
+import ShakaPlayer from "./ShakaPlayer";
 import shaka from "shaka-player";
 
 // ─── Icons (inline SVG to avoid extra deps) ───────────────────────────────────
@@ -341,108 +342,6 @@ function ChannelRow({
         <span className="w-1.5 h-1.5 rounded-full bg-[#E0421A] shrink-0" />
       )}
     </motion.div>
-  );
-}
-
-// ─── HLS Video Player ──────────────────────────────────────────────────────────
-function ShakaPlayer({ src }) {
-  const videoRef = useRef(null);
-  const playerRef = useRef(null);
-
-  const [status, setStatus] = useState("loading");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  useEffect(() => {
-    const initPlayer = async () => {
-      if (!videoRef.current || !src) return;
-
-      setStatus("loading");
-      setErrorMsg("");
-
-      // Install polyfills
-      shaka.polyfill.installAll();
-
-      if (!shaka.Player.isBrowserSupported()) {
-        setStatus("error");
-        setErrorMsg("Browser is not supported.");
-        return;
-      }
-
-      const player = new shaka.Player(videoRef.current);
-
-      playerRef.current = player;
-
-      player.configure({
-        streaming: {
-          bufferingGoal: 30,
-          rebufferingGoal: 2,
-          retryParameters: {
-            maxAttempts: 3,
-          },
-        },
-      });
-
-      player.addEventListener("error", (event) => {
-        console.error(event.detail);
-
-        setStatus("error");
-        setErrorMsg(event.detail.message || "Unable to load stream.");
-      });
-
-      try {
-        await player.load(src);
-
-        await videoRef.current.play().catch(() => {});
-
-        setStatus("playing");
-      } catch (err) {
-        console.error(err);
-        setStatus("error");
-        setErrorMsg(err.message || "Unable to load stream.");
-      }
-    };
-
-    initPlayer();
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    };
-  }, [src]);
-
-  return (
-    <div className="relative w-full h-full bg-black flex items-center justify-center">
-      <video
-        ref={videoRef}
-        className="w-full h-full"
-        controls
-        autoPlay
-        playsInline
-      />
-
-      {status === "loading" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black">
-          <div className="w-8 h-8 border-2 border-white/15 border-t-[#F5A623] rounded-full animate-spin" />
-          <span className="text-xs text-slate-500 font-mono uppercase">
-            Connecting...
-          </span>
-        </div>
-      )}
-
-      {status === "error" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0B0E14] px-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-[#E0421A]/10 text-[#E0421A] flex items-center justify-center">
-            <IconAlert />
-          </div>
-
-          <p className="text-white text-sm font-medium">Stream unavailable</p>
-
-          <p className="text-slate-500 text-xs max-w-xs">{errorMsg}</p>
-        </div>
-      )}
-    </div>
   );
 }
 
