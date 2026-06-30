@@ -1,17 +1,22 @@
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { DataProvider } from "@/context/DataContext";
+import { FavoritesProvider } from "@/context/FavoritesContext";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
-  title: "MhdTv",
-  description:
-    "Stream televison channels for free, all you need is your internet only",
+  title: "StreamVault · IPTV Directory",
+  description: "Browse thousands of live TV channels from around the world",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`min-h-full antialiased overflow-x-hidden`}>
-      <body className="min-h-full flex flex-col">
-        <DataProvider>{children}</DataProvider>
+    <html lang="en" className={inter.variable}>
+      <body className="bg-[#0A0E1A] text-white antialiased">
+        <DataProvider>
+          <FavoritesProvider>{children}</FavoritesProvider>
+        </DataProvider>
       </body>
     </html>
   );

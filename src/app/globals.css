@@ -8,6 +8,49 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --bg-primary: #0a0e1a;
+  --bg-panel: #111827;
+  --bg-sidebar: #090d18;
+  --accent: #6366f1;
+  --accent-blue: #3b82f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Line clamp utility */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Smooth focus outlines */
+*:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @theme {
   /* Custom Breakpoints */
   ----breakpoint-*: initial;
@@ -36,9 +79,12 @@
   --font-weight-black: 900;
 }
 
-html {
+html,
+body {
   scroll-behavior: smooth;
   scroll-snap-type: y mandatory;
+  height: 100%;
+  background-color: var(--bg-primary);
 }
 
 ::-webkit-scrollbar {
